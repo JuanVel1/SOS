@@ -1,55 +1,69 @@
-import sys
-import pygame
-import tkinter.filedialog
-import tkinter
-from emoji import emojize
+import sys  # control del sistema
+import pygame  # interfaz grafica
+import tkinter.filedialog  # manejo de archivos
+import tkinter  # interfaz grafica
 
 # CTRL + ALT + L --> FORMAT
 pygame.init()
 ancho, alto = 1100, 700
 velocidad = [2, 2]
-color_fondo = pygame.color.Color("#475B5A")
-color_menu_izquierdo = pygame.color.Color("#BBBBBF")
-color_azul = pygame.color.Color("#52D1DC")
+color_fondo = pygame.color.Color("#040926")
+color_menu_izquierdo = pygame.color.Color("#251351")
+color_azul = pygame.color.Color("#EEABB3")
 fuente = pygame.font.Font("fonts/Roboto-Regular.ttf", 18)
-color_gris = (197, 194, 197)
+color_gris = pygame.color.Color("#7D2E68")
 color_amarillo = pygame.color.Color("#f5f3bb")
 color_amarillo_claro = pygame.color.Color("#f2f5ea")
 color_rojo = pygame.color.Color("#CC2936")
-color_azul_oscuro = pygame.color.Color("#284B63")
+color_texto = pygame.color.Color("#EEABB3")
+color_azul_oscuro = color_menu_izquierdo
 BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
-
 pantalla = pygame.display.set_mode((ancho, alto))
+
+# Cargue de archivos multimedia
 pygame.display.set_caption("CH Maquina 2022")
 pc_img = pygame.image.load("imgs/Captura.PNG")
-impresora_img = pygame.image.load("imgs/impresora.PNG")
+impresora_img = pygame.image.load("imgs/Captura_1.PNG")
 play_img = pygame.image.load("imgs/play.png")
-clock = pygame.time.Clock()
-
+play_img = pygame.transform.scale(play_img, (64, 64))
 icono = pygame.image.load("imgs/icono.png")
+image = pygame.image.load("imgs/instruments.png").convert()
+
+clock = pygame.time.Clock()  # reloj para controlar la velocidad de ejecucion del programa
 pygame.display.set_icon(icono)
-hay_programa = False
+padding = 5
+
+# Textos a mostrar en la interfaz, se manejan como variables ya que cambian en el transcurso de la ejecucion
+texto_modo = "K E R N E L"
 texto_codigo = "Aqui va el programa :)"
 texto_variables = "Aqui van las variables"
 texto_etiquetas = "Aqui van las etiquetas"
 texto_pc = "texto ejemplo pc"
 texto_impresora = "texto ejemplo impresora"
+texto_paso = "PASO A PASO"
 
-# default_cursor = pygame.mouse.get_cursor()
-# el chcomputador empieza con Z*10 + 50 posiciones de memoria para facilitar el proceso de pruebas.Z = 5
+# Variables iniciales del ch cumputador
 memoria = 100
-# 10*Z + 9 posiciones.Z = 5
 kernel = 59
 memoria_principal = list(range(memoria + kernel))
-programas = []
-acumulador = ['I', 0]
-image = pygame.image.load("imgs/instruments.png").convert()
 
-padding = 5
+# Variables globales
+programas = []  # almacenamiento de los programas
+acumulador = ['I', 0]
+variables = {}
+etiquetas = {}
+resultado = None
+contador = 0
+
+# cada recuadro en la interfaz es una Surface dentro de pygame
 lado_derecho_surface = pygame.Surface((216 - padding * 2, alto - 50))
 
+# Variables auxiliares para ejecucion
+paso_a_paso = False  # saber si se debe correr el modo paso a paso
 
+
+# Clase que  muestra la parte scrolleabe
 class ScrollBar(object):
     def __init__(self, image_height):
         self.y_axis = 0
@@ -129,20 +143,18 @@ class ScrollBar(object):
                     (lado_derecho_surface.get_rect().width - 20, lado_derecho_surface.get_rect().height - 20))
 
 
-# 1600 -->78
-
 scrollbar = ScrollBar((len(memoria_principal) * 1600) / 79.5)
 
 
 def poner_boton(pos_x, pos_y, superficie):
-    boton = pygame.Rect(pos_x, pos_y, (ancho / 7), 40)
+    boton = pygame.Rect(pos_x, pos_y, (ancho / 7) + 20, 40)
     clickeable = pygame.draw.rect(superficie, color_azul, boton, 0, 15)
     return clickeable
 
 
 def poner_textbox(pos_x, pos_y, superficie):
     boton = pygame.Rect(pos_x, pos_y, (ancho / 6), 500)
-    clickeable = pygame.draw.rect(superficie, color_azul, boton, 0, 15)
+    clickeable = pygame.draw.rect(superficie, color_menu_izquierdo, boton, 0, 15)
     return clickeable
 
 
@@ -152,11 +164,18 @@ def poner_controlador(pos_x, pos_y, superficie):
     return clickeable
 
 
-def poner_botones(espaciado):
+def poner_botones(espaciado, contador):
     x = 50
     distancia = 50
+    resultado = None
 
     aux = poner_boton(x, espaciado, pantalla)
+    fuente = pygame.font.Font("fonts/Roboto-Regular.ttf", 22)
+    texto = pygame.font.Font.render(fuente, texto_modo, False, color_amarillo)
+    texto = pygame.transform.rotate(texto, 90)
+    pantalla.blit(texto, [lado_izquierdo.left + 5, espaciado + aux.height / 4])
+
+    fuente = pygame.font.Font("fonts/Roboto-Regular.ttf", 18)
     pantalla.blit((pygame.font.Font.render(fuente, "CARGAR .CH", False, color_fondo)),
                   [x + aux.width / 4, espaciado + aux.height / 4])
     espaciado += distancia
@@ -183,11 +202,20 @@ def poner_botones(espaciado):
     pantalla.blit((pygame.font.Font.render(fuente, "-", False, color_fondo)),
                   [x + 182 + menos_memoria.width / 2, espaciado - 25])
 
-    paso = poner_boton(x + 185, espaciado - 100, pantalla)
-    pantalla.blit((pygame.font.Font.render(fuente, "paso", False, color_fondo)),
-                  [x + 170 + menos_memoria.width / 2, espaciado - 95])
+    fuente = pygame.font.Font("fonts/Roboto-Regular.ttf", 15)
+    boton_paso = poner_boton(x + 185, espaciado - 100, pantalla)
+    if type(texto_paso) != str:
+        if type(texto_paso) is list:
+            pantalla.blit((pygame.font.Font.render(fuente, str(texto_paso[1]), False, color_fondo)),
+                          [x + 170 + menos_memoria.width / 2, espaciado - 95])
+        else:
+            pantalla.blit((pygame.font.Font.render(fuente, "espacio libre en memoria", False, color_fondo)),
+                          [x + 170 + menos_memoria.width / 2, espaciado - 95])
+    else:
+        pantalla.blit((pygame.font.Font.render(fuente, texto_paso, False, color_fondo)),
+                      [x + 170 + menos_memoria.width / 2, espaciado - 95])
 
-
+    fuente = pygame.font.Font("fonts/Roboto-Regular.ttf", 18)
     aux = poner_boton(x, espaciado, pantalla)
     pantalla.blit((pygame.font.Font.render(fuente, "KERNEL       : " + str(kernel), False, color_fondo)),
                   [x + aux.width / 8, espaciado + aux.height / 4])
@@ -197,7 +225,7 @@ def poner_botones(espaciado):
 
     fuente_aux = pygame.font.Font("fonts/Roboto-Regular.ttf", 12)
     if type(texto_codigo) == str:
-        pantalla.blit((pygame.font.Font.render(fuente_aux, texto_codigo, False, color_fondo)),
+        pantalla.blit((pygame.font.Font.render(fuente_aux, texto_codigo, False, color_texto)),
                       [aux.left + 5, aux.top + 5])
     else:
         mostrar_texto(texto_codigo, aux.left, aux.top)
@@ -220,7 +248,7 @@ def poner_botones(espaciado):
         pantalla.blit((pygame.font.Font.render(fuente_aux, texto_variables, False, color_fondo)),
                       [variables_textbox.left + variables_textbox.width / 5, variables_textbox.centery])
     else:
-        mostrar_texto(texto_variables, variables_textbox.left + 5, variables_textbox.top + 23)
+        mostrar_texto(texto_variables, variables_textbox.left + 5, variables_textbox.top + 23, True)
 
     pantalla.blit((pygame.font.Font.render(fuente, "ACUMULADOR   : " + str(acumulador[1]), False, color_amarillo)),
                   [variables_textbox.left + 5, variables_textbox.bottom + 5])
@@ -229,9 +257,28 @@ def poner_botones(espaciado):
         pantalla.blit((pygame.font.Font.render(fuente_aux, texto_etiquetas, False, color_fondo)),
                       [etiquetas_textbox.left + etiquetas_textbox.width / 5, etiquetas_textbox.centery])
     else:
-        mostrar_texto(texto_etiquetas, etiquetas_textbox.left + 5, etiquetas_textbox.top + 23)
+        mostrar_texto(texto_etiquetas, etiquetas_textbox.left + 5, etiquetas_textbox.top + 23, True)
+    if paso_a_paso:
+        cuadro_respuesta = pygame.draw.rect(pantalla, color_rojo, pygame.Rect(pantalla.get_rect().centerx / 1.5,
+                                                                              pantalla.get_rect().bottom - 100,
+                                                                              lado_derecho_surface.get_rect().width * 1.65,
+                                                                              55),
+                                            0, 15)
+        pantalla.blit((pygame.font.Font.render(fuente, "Paso siguiente", False, color_amarillo)),
+                      [cuadro_respuesta.left + 25, cuadro_respuesta.top + 15])
 
-    return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel]
+        si = pygame.draw.rect(pantalla, color_amarillo,
+                              pygame.Rect(cuadro_respuesta.centerx + 10, cuadro_respuesta.top + 5, 80, 40),
+                              0, 8)
+        pantalla.blit((pygame.font.Font.render(fuente, ">>", False, color_rojo)),
+                      [si.centerx - 5, si.centery - 10])
+        if pygame.mouse.get_pressed()[0] and si.collidepoint(pygame.mouse.get_pos()):
+            resultado = modo_paso_a_paso(contador, acumulador, variables, etiquetas)
+            contador += 1
+
+            return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado]
+
+    return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado]
 
 
 #   filedialog
@@ -252,8 +299,9 @@ def validar_sintaxis(linea):
     linea = linea.replace("   ", " ")
     linea = linea.replace("  ", " ")
     linea = linea.replace(" ", " ")
-    linea = linea = linea.split(" ")
+    linea = linea = linea.split(" ")  # se quitan espacios innecesarios y se divide la linea en palabras
 
+    # Se valida la longitud de la linea, que tenga las palabras correctas, asi como el tipo y demas
     if linea[0] == "cargue":
         if len(linea) == 2 and not linea[1].isdigit() and linea[1][0].isalpha():
             return True
@@ -358,21 +406,26 @@ def validar_sintaxis(linea):
         return False
 
 
-def mostrar_texto(texto, left, top):
+def mostrar_texto(texto, left, top, var=False):
     fuente_aux = pygame.font.Font("fonts/Roboto-Regular.ttf", 12)
+    color = color_amarillo
+    if var == True:
+        color = color_fondo
     espaciado = 5
     for t in texto:
-        pantalla.blit((pygame.font.Font.render(fuente_aux, t, False, color_fondo)),
+        pantalla.blit((pygame.font.Font.render(fuente_aux, t, False, color)),
                       [left + 5, top + espaciado])
         espaciado += 15
 
 
-def manejo_archivo(ruta):
+def manejo_archivo(ruta, variables, etiquetas):
     archivo = open(ruta, 'r')
     instrucciones = archivo.read().splitlines()
     aux = ""
     paso = True
+    programa = []
 
+    # Por cada instruccion se valida su sintaxis llamando a la funcion validar_sintaxis
     for i in instrucciones:
         if i != "":
             if validar_sintaxis(i):
@@ -381,7 +434,53 @@ def manejo_archivo(ruta):
                 print("Error en sintaxix, linea ", instrucciones.index(i), i)
                 paso = False
                 break
-    return paso, aux
+
+    # Si la sintaxtis es valida se cargan las variables, etiquetas y de una vez se guarda en la variable global
+    # de programas nuestro programa
+    if paso:
+        ejecuciones = []
+
+        for linea in instrucciones:
+            linea = linea.strip()
+            linea = linea.replace("       ", " ")
+            linea = linea.replace("      ", " ")
+            linea = linea.replace("     ", " ")
+            linea = linea.replace("    ", " ")
+            linea = linea.replace("   ", " ")
+            linea = linea.replace("  ", " ")
+            linea = linea.replace(" ", " ")
+            if linea != "":
+                ejecuciones.append(linea)
+            linea = linea.split(" ")
+            if linea[0] == "nueva":
+                if len(linea) == 4:
+                    variables[linea[1]] = [linea[2], str(linea[3])]
+                else:
+                    if linea[2] == 'C':
+                        if len(linea) == 2:
+                            variables[linea[1]] = [linea[2], ' ']
+                        elif len(linea) > 4:
+                            cantidad_palabras = len(linea)
+                            resultado = ""
+                            for pos in range(3, cantidad_palabras):
+                                resultado += " " + linea[pos]
+                            variables[linea[1]] = [linea[2], resultado]
+                    elif linea[2] == 'R':
+                        variables[linea[1]] = [linea[2], '0']
+                    elif linea[2] == 'L':
+                        variables[linea[1]] = [linea[2], '0']
+                    else:
+                        variables[linea[1]] = [linea[2], '0']
+            elif linea[0] == "etiqueta":
+                etiquetas[linea[1]] = int(linea[2])
+
+        for ej in ejecuciones:
+            programa.append(ej)
+        for et in etiquetas.items():
+            programa.append(et)
+        for va in variables.items():
+            programa.append(va)
+    return paso, aux, programa
 
 
 f = "<No File Selected>"
@@ -531,14 +630,14 @@ def ejecucion(programa, acumulador, variables, etiquetas, texto_pc):
             return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux
         elif linea[0] == "vayasi":
             if acumulador_1[1] > 0:
-                aux = programa[etiquetas_aux[linea[1]]:]
+                aux = programa[etiquetas_aux[linea[1]] + 1:]
                 variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux = ejecucion(aux,
                                                                                                           acumulador_1,
                                                                                                           variables_aux,
                                                                                                           etiquetas_aux,
                                                                                                           texto_pc_aux)
             elif acumulador_1[1] < 0:
-                aux = programa[etiquetas_aux[linea[2]]:]
+                aux = programa[etiquetas_aux[linea[2]] + 1:]
                 variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux = ejecucion(aux,
                                                                                                           acumulador_1,
                                                                                                           variables_aux,
@@ -556,42 +655,15 @@ def ejecucion(programa, acumulador, variables, etiquetas, texto_pc):
     return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux
 
 
-def quitarSaltoDeLinea(programa):
-    # ingresa string
-    print(programa)
-
-
-def ejecutar_programa(programa):
-    acumulador = ['I', 0]
-    variables = {}
-    etiquetas = {}
+def modo_paso_a_paso(posicion, acumulador, variables, etiquetas):
     texto_pc = "texto ejemplo pc"
     texto_impresora = "texto ejemplo impresora"
     pos = []
-    """
-    acumulador estructura:['I', '5'] <class 'list'>
-    """
-    for instruccion in programa:
-        if instruccion == "":
-            pos.append(programa.index(instruccion))
-    for p in pos:
-        programa.pop(p)
-    for instruccion in programa:
-        instruccion = instruccion.strip()
-        instruccion = instruccion.replace("       ", " ")
-        instruccion = instruccion.replace("      ", " ")
-        instruccion = instruccion.replace("     ", " ")
-        instruccion = instruccion.replace("    ", " ")
-        instruccion = instruccion.replace("   ", " ")
-        instruccion = instruccion.replace("  ", " ")
-        instruccion = instruccion.replace(" ", " ")
-        linea = instruccion.split(" ")
-        # print(">> ", programa.index(instruccion), " - ", instruccion)
+    linea = ""
+
+    if type(memoria_principal[posicion]) == str:
+        linea = memoria_principal[posicion].split(" ")
         if linea[0] == "nueva":
-            """
-            Estructura diccionario :
-            "nombre_variable": ["tipo","valor"]
-            """
             if len(linea) == 4:
                 variables[linea[1]] = [linea[2], str(linea[3])]
             else:
@@ -744,25 +816,191 @@ def ejecutar_programa(programa):
                 pass
 
         elif linea[0] == "etiqueta":
-            """
-            etiqueta estructura:{'nombre':posicion}
-            """
             etiquetas[linea[1]] = int(linea[2])
-            # print(etiquetas)
 
         elif linea[0] == "retorne":
-            programas.append(programa)
-            memoria_principal[0] = "Acumulador :" + str(acumulador[1])
-            for k in range(kernel):
-                memoria_principal[k + 1] = ("J" + str(k) + " Kernel")
-            contador = 0
-            for prog in programas:
-                for ins in range(len(prog)):
-                    memoria_principal[contador + kernel] = [("J" + str(contador + kernel)), prog[ins]]
-                    contador += 1
-
             return variables, acumulador, etiquetas, texto_pc, texto_impresora
+    return variables, acumulador, etiquetas, texto_pc, texto_impresora
 
+
+def ejecutar_programa(programa, variables, etiquetas, acumulador):
+    texto_pc = "texto ejemplo pc"
+    texto_impresora = "texto ejemplo impresora"
+    pos = []
+    for instruccion in programa:
+        if instruccion == "":
+            pos.append(programa.index(instruccion))
+    for p in pos:
+        programa.pop(p)
+    for instruccion in programa:
+        instruccion = instruccion.strip()
+        instruccion = instruccion.replace("       ", " ")
+        instruccion = instruccion.replace("      ", " ")
+        instruccion = instruccion.replace("     ", " ")
+        instruccion = instruccion.replace("    ", " ")
+        instruccion = instruccion.replace("   ", " ")
+        instruccion = instruccion.replace("  ", " ")
+        instruccion = instruccion.replace(" ", " ")
+        linea = instruccion.split(" ")
+        print(">> ", programa.index(instruccion), " - ", instruccion)
+
+        if linea[0] == "nueva":
+            if len(linea) == 4:
+                variables[linea[1]] = [linea[2], str(linea[3])]
+            else:
+                if linea[2] == 'C':
+                    if len(linea) == 2:
+                        variables[linea[1]] = [linea[2], ' ']
+                    elif len(linea) > 4:
+                        cantidad_palabras = len(linea)
+                        resultado = ""
+                        for pos in range(3, cantidad_palabras):
+                            resultado += " " + linea[pos]
+                        variables[linea[1]] = [linea[2], resultado]
+                elif linea[2] == 'R':
+                    variables[linea[1]] = [linea[2], '0']
+                elif linea[2] == 'L':
+                    variables[linea[1]] = [linea[2], '0']
+                else:
+                    variables[linea[1]] = [linea[2], '0']
+        elif linea[0] == "cargue":
+            acumulador = [variables[linea[1]][0], variables[linea[1]][1]]
+        elif linea[0] == "almacene":
+            variables[linea[1]] = acumulador
+        elif linea[0] == "lea":
+            aux = input("Ingrese el nuevo valor de la variable " + str(linea[1]) + " : ")
+            particion = aux.partition('.')
+
+            if aux.isdigit() and aux != '0' and aux != '1':
+                variables[linea[1]][1] = int(aux)
+                variables[linea[1]][0] = 'I'
+
+            elif (particion[0].isdigit() and particion[1] == '.' and particion[2].isdigit()) or (
+                    particion[0] == '' and particion[1] == '.' and particion[2].isdigit()) or (
+                    particion[0].isdigit() and particion[1] == '.' and particion[2] == ''):
+                variables[linea[1]][1] = float(aux)
+                variables[linea[1]][0] = 'R'
+
+            elif aux == '1' or aux == '0':
+                if aux == '1':
+                    variables[linea[1]][1] = True
+                else:
+                    variables[linea[1]][1] = False
+                variables[linea[1]][0] = 'L'
+            else:
+                variables[linea[1]][1] = aux
+                variables[linea[1]][0] = 'C'
+
+        elif linea[0] == "sume":
+            if acumulador[0] == 'I' or acumulador[0] == 'R':
+                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                    acumulador[1] = int(acumulador[1]) + int(variables[linea[1]][1])
+                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = int(acumulador[1]) + float(variables[linea[1]][1])
+
+                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = float(acumulador[1]) + float(variables[linea[1]][1])
+                else:
+                    acumulador[1] = float(acumulador[1]) + int(variables[linea[1]][1])
+
+        elif linea[0] == "reste":
+            # validar parte logica here
+            if acumulador[0] == 'I' or acumulador[0] == 'R':
+                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                    acumulador[1] = int(acumulador[1]) - int(variables[linea[1]][1])
+                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = int(acumulador[1]) - float(variables[linea[1]][1])
+                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = float(acumulador[1]) - float(variables[linea[1]][1])
+                else:
+                    acumulador[1] = float(acumulador[1]) - int(variables[linea[1]][1])
+
+        elif linea[0] == "multiplique":
+            if acumulador[0] == 'I' or acumulador[0] == 'R':
+                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                    acumulador[1] = int(acumulador[1]) * int(variables[linea[1]][1])
+                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = int(acumulador[1]) * float(variables[linea[1]][1])
+                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = float(acumulador[1]) * float(variables[linea[1]][1])
+                else:
+                    acumulador[1] = float(acumulador[1]) * int(variables[linea[1]][1])
+
+        elif linea[0] == "divida":
+            if acumulador[0] == 'I' or acumulador[0] == 'R':
+                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                    acumulador[1] = int(acumulador[1]) / int(variables[linea[1]][1])
+                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = int(acumulador[1]) / float(variables[linea[1]][1])
+                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = float(acumulador[1]) / float(variables[linea[1]][1])
+                else:
+                    acumulador[1] = float(acumulador[1]) / int(variables[linea[1]][1])
+
+        elif linea[0] == "potencia":
+            if acumulador[0] == 'I' or acumulador[0] == 'R':
+                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                    acumulador[1] = int(acumulador[1]) ** int(variables[linea[1]][1])
+                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = int(acumulador[1]) ** float(variables[linea[1]][1])
+                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = float(acumulador[1]) ** float(variables[linea[1]][1])
+                else:
+                    acumulador[1] = float(acumulador[1]) ** int(variables[linea[1]][1])
+
+        elif linea[0] == "modulo":
+            if acumulador[0] == 'I' or acumulador[0] == 'R':
+                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                    acumulador[1] = int(acumulador[1]) % int(variables[linea[1]][1])
+                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = int(acumulador[1]) % float(variables[linea[1]][1])
+                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                    acumulador[1] = float(acumulador[1]) % float(variables[linea[1]][1])
+                else:
+                    acumulador[1] = float(acumulador[1]) % int(variables[linea[1]][1])
+
+        elif linea[0] == "concatene":
+            acumulador = str(acumulador) + str(variables[linea[1]])
+        elif linea[0] == "elimine":
+            (str(acumulador)).replace(str(linea[1]), "")
+        elif linea[0] == "extraiga":
+            aux = []
+            aux[:0] = str(acumulador)
+            acumulador = aux[linea[1]:]
+        elif linea[0] == "Y":
+            variables[linea[3]] = variables[linea[1]] and variables[linea[2]]
+        elif linea[0] == "O":
+            variables[linea[3]] = variables[linea[1]] or variables[linea[2]]
+        elif linea[0] == "NO":
+            variables[linea[2]] = not variables[linea[1]]
+        elif linea[0] == "muestre":
+            # Muestre por el monitor de pc
+            texto_pc = variables[linea[1]]
+        elif linea[0] == "imprima":
+            texto_impresora = variables[linea[1]][1]
+        elif linea[0] == "vaya":
+            aux = programa[etiquetas[linea[1]]:]
+            variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
+                                                                                    etiquetas, texto_pc)
+        elif linea[0] == "vayasi":
+            if acumulador[1] > 0:
+                aux = programa[etiquetas[linea[1]] + 1:]
+                variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
+                                                                                        etiquetas, texto_pc)
+            elif acumulador[1] < 0:
+                aux = programa[etiquetas[linea[2]] + 1:]
+                variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
+                                                                                        etiquetas, texto_pc)
+            else:
+                pass
+
+        elif linea[0] == "etiqueta":
+            etiquetas[linea[1]] = int(linea[2])
+
+        elif linea[0] == "retorne":
+            return variables, acumulador, etiquetas, texto_pc, texto_impresora
+        else:
+            pass
     return variables, acumulador, etiquetas, texto_pc, texto_impresora
 
 
@@ -786,10 +1024,8 @@ def mostrar_etiquetas(etiquetas):
     res = res.split("\n")
     return res
 
-
+#Metodo que muestra en un recuadro con estilo cualquier mensaje de error
 def mostrarError(texto):
-    print(texto)
-    # dimensiones :  30 203 183 673
     cuadro_error = pygame.draw.rect(pantalla, color_rojo, pygame.Rect(30, lado_derecho_surface.get_rect().bottom - 50,
                                                                       lado_derecho_surface.get_rect().width * 1.65, 55),
                                     0, 15)
@@ -797,12 +1033,30 @@ def mostrarError(texto):
                   [cuadro_error.left + 5, cuadro_error.top + 15])
 
 
+# Muestra el array por pantalla
+def cargar_memoria(programas):
+    memoria_principal[0] = "Acumulador :" + str(acumulador[1])
+    for k in range(kernel):
+        memoria_principal[k + 1] = ("J" + str(k) + " Kernel")
+
+    contador = 0
+    for programa in programas:
+        for instruccion in range(len(programa)):
+            if type(programa[instruccion]) != tuple:
+                memoria_principal[contador + kernel] = [("J" + str(contador + kernel)), programa[instruccion]]
+            else:
+                if type(programa[instruccion][1]) != list:
+                    memoria_principal[contador + kernel] = [("J" + str(contador + kernel)), (
+                            str(programa[instruccion][0]) + " " + str(programa[instruccion][1]))]
+                else:
+                    memoria_principal[contador + kernel] = [("J" + str(contador + kernel)), (
+                            str(programa[instruccion][0]) + " " + str(programa[instruccion][1][0]) + " " + str(
+                        programa[instruccion][1][1]))]
+            contador += 1
+
+#Muestra el array por pantalla de memoria
 def mostrar_memoria():
     espaciado = 5
-    # con el height actual muestra 32
-    # cuanto height se necesita para mostrar memoria principal total
-    # lado_derecho_surface.get_rect().height --> 32
-    # ? --> len(memoria_principal)
     aux = (len(memoria_principal) * lado_derecho_surface.get_rect().height) / 32
     memoria_surface = pygame.Surface((lado_izquierdo.width - 30, aux))
     memoria_surface.fill(color_azul_oscuro)
@@ -811,7 +1065,8 @@ def mostrar_memoria():
     for instrucccion in memoria_principal:
         if type(instrucccion) is list:
             memoria_surface.blit(
-                (pygame.font.Font.render(fuente, str(instrucccion[0] + " " + instrucccion[1]), False, color_amarillo)),
+                (pygame.font.Font.render(fuente, str(instrucccion[0] + " " + str(instrucccion[1])), False,
+                                         color_amarillo)),
                 [memoria_surface.get_rect().left + 2, memoria_surface.get_rect().top + espaciado])
         else:
             memoria_surface.blit((pygame.font.Font.render(fuente, str(instrucccion), False, color_amarillo)),
@@ -820,25 +1075,37 @@ def mostrar_memoria():
     lado_derecho_surface.blit(memoria_surface, (0, scrollbar.y_axis))
 
 
+# Se ingresa al ciclo de pygame
 while True:
-    resultado = None
     for event in pygame.event.get():
+        # Muestra de componentes graficos
         pantalla.fill(color_fondo)
         pygame.draw.rect(pantalla, color_azul,
                          pygame.Rect(10, 10, (ancho / 5), lado_derecho_surface.get_rect().height + 23), 12, 15)
-        lado_izquierdo = pygame.draw.rect(pantalla, color_menu_izquierdo,
+
+        lado_izquierdo = pygame.draw.rect(pantalla, color_gris,
                                           pygame.Rect(12, 12, (ancho / 5) - 3,
-                                                      lado_derecho_surface.get_rect().height + 23), 0, 15)
+                                                      lado_derecho_surface.get_rect().height + 20), 0, 15)
 
+        contador = poner_botones(20, contador)[6]
+        resultado = poner_botones(20, contador)[7]
+        res = poner_botones(20, contador)
 
-        poner_botones(20)
+        if resultado:
+            texto_variables = mostrar_variables(resultado[0])
+            acumulador = resultado[1]
+            texto_etiquetas = mostrar_etiquetas(resultado[2])
+            texto_paso = memoria_principal[contador + kernel]
+            variables, acumulador, etiquetas, texto_pc, texto_impresora = modo_paso_a_paso(contador, acumulador,
+                                                                                           variables, etiquetas)
+
         pc = pantalla.blit(pc_img, (pantalla.get_rect().width / 2 - 120, pantalla.get_rect().top + 5))
         pantalla.blit((pygame.font.Font.render(fuente, "texto ejemplo pc", False, color_amarillo)),
                       [pc.centerx, pc.top + 5])
 
         impresora = pantalla.blit(impresora_img, (pantalla.get_rect().width / 2 - 120, pc.bottom + 5))
         pantalla.blit((pygame.font.Font.render(fuente, str(texto_impresora), False, color_fondo)),
-                      [impresora.centerx - 90, impresora.top + 10])
+                      [impresora.centerx - 90, impresora.top + 15])
 
         pygame.draw.rect(pantalla, color_azul,
                          pygame.Rect(pc.right + 80, pantalla.get_rect().top + 5, (ancho / 5),
@@ -851,58 +1118,91 @@ while True:
 
         lado_derecho = pygame.draw.rect(pantalla, color_menu_izquierdo,
                                         pygame.Rect(pc.right + 82, pantalla.get_rect().top + 7, (ancho / 5) - 4,
-                                                    lado_derecho_surface.get_rect().height + 26), 0, 15)
+                                                    lado_derecho_surface.get_rect().height + 20), 0, 15)
 
         boton = pygame.Rect(313, 70, 80, 80)
         play = pygame.draw.rect(pantalla, color_azul, boton, 0, 10)
         pantalla.blit(play_img, [play.left + 10, play.top + 10])
 
+        # Si se sale de la equis se sale del sys
         if event.type == pygame.QUIT:
             sys.exit()
 
+        # si seleccionamos con el mouse ingresa, alli se valida que boton fue seleccionado
         elif event.type == pygame.MOUSEBUTTONDOWN:
             # Boton cargue
-            if poner_botones(20)[0].collidepoint(pygame.mouse.get_pos()):
+            # Si se selecciona el boton de cargar .ch entra
+            if poner_botones(20, contador)[0].collidepoint(pygame.mouse.get_pos()):
+                # Si no hay valores para memoria y kernel muestra error
                 if memoria == 0 or kernel == 0:
                     mostrarError("Establezca valores para memoria y kernel")
                 else:
+                    # Valida que sea el correcto espacio maximo
                     if (memoria + kernel) <= 5100:
                         f = prompt_file()
-                        programa = manejo_archivo(f)
+                        # Se llama a la funcion manejo_archivo que abre el cuadro de dialogo y trae el archivo para
+                        # validar su sintaxix
+                        programa = manejo_archivo(f, variables, etiquetas)
+
                         if programa[0]:
                             pantalla.fill(color_azul)
                             texto_codigo = programa[1].split("\n")
-                            if play_img.get_rect().collidepoint(pygame.mouse.get_pos()):
-                                print("play")
-                                resultado = ejecutar_programa(texto_codigo)
-                            if resultado:
-                                texto_variables = mostrar_variables(resultado[0])
-                                texto_etiquetas = mostrar_etiquetas(resultado[2])
-                                texto_pc = resultado[3]
-                                texto_impresora = resultado[4]
-                                acumulador = resultado[1]
-
+                        if programa[2]:
+                            programas.append(programa[2])
+                            cargar_memoria(programas)
+                            # texto_variables = mostrar_variables(variables)
+                            # texto_etiquetas = mostrar_etiquetas(etiquetas)
                     else:
                         mostrarError("Memoria principal con longitud superior")
 
             # Acciones para botones de aumento y dism para var kernel y memoria
-            elif poner_botones(20)[1].collidepoint(pygame.mouse.get_pos()):
+            elif poner_botones(20, contador)[1].collidepoint(pygame.mouse.get_pos()):
                 memoria += 10
-            elif poner_botones(20)[2].collidepoint(pygame.mouse.get_pos()) and memoria > 0:
+            elif poner_botones(20, contador)[2].collidepoint(pygame.mouse.get_pos()) and memoria > 0:
                 memoria -= 10
-            elif poner_botones(20)[3].collidepoint(pygame.mouse.get_pos()):
+            elif poner_botones(20, contador)[3].collidepoint(pygame.mouse.get_pos()):
                 kernel += 10
-            elif poner_botones(20)[4].collidepoint(pygame.mouse.get_pos()) and kernel > 0:
+            elif poner_botones(20, contador)[4].collidepoint(pygame.mouse.get_pos()) and kernel > 0:
                 kernel -= 10
-                # [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel]
+            # Si ya se cargo el programa se pasa al modo usuario donde se habilita la opcion de play y paso a paso
+            elif play.collidepoint(pygame.mouse.get_pos()):
+                if len(programas) > 0:
+                    texto_modo = "U S U A R I O"
 
+                    for prog in programas:
+                        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+                    if resultado:
+                        texto_variables = mostrar_variables(resultado[0])
+                        texto_etiquetas = mostrar_etiquetas(resultado[2])
+                        texto_pc = resultado[3]
+                        texto_impresora = resultado[4]
+                        acumulador = resultado[1]
+                else:
+                    mostrarError("No hay programas cargados aun")
+            elif poner_botones(20, contador)[5].collidepoint(pygame.mouse.get_pos()):
+                if len(programas) > 0:
+                    texto_modo = "U S U A R I O"
+                    for prog in programas:
+                        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+                    if resultado:
+                        texto_variables = mostrar_variables(resultado[0])
+                        texto_etiquetas = mostrar_etiquetas(resultado[2])
+                        texto_pc = resultado[3]
+                        texto_impresora = resultado[4]
+                        acumulador = resultado[1]
+                        paso_a_paso = not paso_a_paso
+                        texto_paso = memoria_principal[kernel + contador]
+                else:
+                    mostrarError("No hay programas cargados aun")
         scrollbar.event_handler(event)
-
-    lado_derecho_surface.fill((255, 255, 255))
-    # lado_derecho_surface.blit(image, (0, scrollbar.y_axis))
-    lado_derecho_surface.fill(color_amarillo)
+    # Metodos graficos
+    lado_derecho_surface.fill(pygame.color.Color("#EEABB3"))
     scrollbar.draw(lado_derecho_surface)
+
+    # Muestra el array de memoria en pantalla
     mostrar_memoria()
+
+    # Metodos graficos
     pantalla.blit(lado_derecho_surface, (872 + padding, 7 + padding))
     scrollbar.update()
     pygame.display.flip()
