@@ -486,7 +486,7 @@ def manejo_archivo(ruta, variables, etiquetas):
 f = "<No File Selected>"
 
 
-def ejecucion(programa, acumulador, variables, etiquetas, texto_pc):
+def ejecucion(programa, acumulador, variables, etiquetas, texto_pc, continuar):
     acumulador_1 = acumulador
     variables_aux = variables
     etiquetas_aux = etiquetas
@@ -630,19 +630,24 @@ def ejecucion(programa, acumulador, variables, etiquetas, texto_pc):
             return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux
         elif linea[0] == "vayasi":
             if acumulador_1[1] > 0:
+                """
                 aux = programa[etiquetas_aux[linea[1]] + 1:]
                 variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux = ejecucion(aux,
                                                                                                           acumulador_1,
                                                                                                           variables_aux,
                                                                                                           etiquetas_aux,
                                                                                                           texto_pc_aux)
+                                                                                                          """
+                return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux, True
+
             elif acumulador_1[1] < 0:
-                aux = programa[etiquetas_aux[linea[2]] + 1:]
-                variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux = ejecucion(aux,
+                """ aux = programa[etiquetas_aux[linea[2]] + 1:]
+                               variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux = ejecucion(aux,
                                                                                                           acumulador_1,
                                                                                                           variables_aux,
                                                                                                           etiquetas_aux,
-                                                                                                          texto_pc_aux)
+                                                                                                          texto_pc_aux)"""
+                return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux, True
             else:
                 pass
         elif linea[0] == "etiqueta":
@@ -650,9 +655,9 @@ def ejecucion(programa, acumulador, variables, etiquetas, texto_pc):
             etiquetas_aux[linea[1]] = int(linea[2])
 
         elif linea[0] == "retorne":
-            return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux
+            return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux, False
 
-    return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux
+    return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux, False
 
 
 def modo_paso_a_paso(posicion, acumulador, variables, etiquetas):
@@ -660,7 +665,7 @@ def modo_paso_a_paso(posicion, acumulador, variables, etiquetas):
     texto_impresora = "texto ejemplo impresora"
     pos = []
     linea = ""
-
+    continuar = False
     if type(memoria_principal[posicion]) == str:
         linea = memoria_principal[posicion].split(" ")
         if linea[0] == "nueva":
@@ -802,16 +807,34 @@ def modo_paso_a_paso(posicion, acumulador, variables, etiquetas):
         elif linea[0] == "vaya":
             aux = programa[etiquetas[linea[1]]:]
             variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                    etiquetas, texto_pc)
+                                                                                    etiquetas, texto_pc, False)
         elif linea[0] == "vayasi":
             if acumulador[1] > 0:
-                aux = programa[etiquetas[linea[1]]:]
-                variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                        etiquetas, texto_pc)
+                aux = programa[etiquetas[linea[1]] - 1:]
+
+                variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                   variables,
+                                                                                                   etiquetas, texto_pc,
+                                                                                                   continuar)
+
+                while continuar:
+                    variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                       variables,
+                                                                                                       etiquetas,
+                                                                                                       texto_pc,
+                                                                                                       continuar)
             elif acumulador[1] < 0:
-                aux = programa[etiquetas[linea[2]]:]
-                variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                        etiquetas, texto_pc)
+                aux = programa[etiquetas[linea[2]] - 1:]
+                variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                   variables,
+                                                                                                   etiquetas, texto_pc,
+                                                                                                   continuar)
+                while continuar:
+                    variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                       variables,
+                                                                                                       etiquetas,
+                                                                                                       texto_pc,
+                                                                                                       continuar)
             else:
                 pass
 
@@ -827,6 +850,7 @@ def ejecutar_programa(programa, variables, etiquetas, acumulador):
     texto_pc = "texto ejemplo pc"
     texto_impresora = "texto ejemplo impresora"
     pos = []
+    continuar = False
     for instruccion in programa:
         if instruccion == "":
             pos.append(programa.index(instruccion))
@@ -981,16 +1005,36 @@ def ejecutar_programa(programa, variables, etiquetas, acumulador):
         elif linea[0] == "vaya":
             aux = programa[etiquetas[linea[1]]:]
             variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                    etiquetas, texto_pc)
+                                                                                    etiquetas, texto_pc, False)
         elif linea[0] == "vayasi":
             if acumulador[1] > 0:
-                aux = programa[etiquetas[linea[1]] + 1:]
-                variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                        etiquetas, texto_pc)
+                aux = programa[etiquetas[linea[1]] - 1:]
+                print("empieza desde ", aux)
+                variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                   variables,
+                                                                                                   etiquetas, texto_pc,
+                                                                                                   continuar)
+
+                while continuar:
+                    variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                       variables,
+                                                                                                       etiquetas,
+                                                                                                       texto_pc,
+                                                                                                       continuar)
+                print("Termino")
             elif acumulador[1] < 0:
-                aux = programa[etiquetas[linea[2]] + 1:]
-                variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                        etiquetas, texto_pc)
+                aux = programa[etiquetas[linea[2]] - 1:]
+                variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                   variables,
+                                                                                                   etiquetas, texto_pc,
+                                                                                                   continuar)
+
+                while continuar:
+                    variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                                       variables,
+                                                                                                       etiquetas,
+                                                                                                       texto_pc,
+                                                                                                       continuar)
             else:
                 pass
 
@@ -1024,7 +1068,8 @@ def mostrar_etiquetas(etiquetas):
     res = res.split("\n")
     return res
 
-#Metodo que muestra en un recuadro con estilo cualquier mensaje de error
+
+# Metodo que muestra en un recuadro con estilo cualquier mensaje de error
 def mostrarError(texto):
     cuadro_error = pygame.draw.rect(pantalla, color_rojo, pygame.Rect(30, lado_derecho_surface.get_rect().bottom - 50,
                                                                       lado_derecho_surface.get_rect().width * 1.65, 55),
@@ -1054,7 +1099,8 @@ def cargar_memoria(programas):
                         programa[instruccion][1][1]))]
             contador += 1
 
-#Muestra el array por pantalla de memoria
+
+# Muestra el array por pantalla de memoria
 def mostrar_memoria():
     espaciado = 5
     aux = (len(memoria_principal) * lado_derecho_surface.get_rect().height) / 32
