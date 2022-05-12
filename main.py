@@ -2,6 +2,9 @@ import sys  # control del sistema
 import pygame  # interfaz grafica
 import tkinter.filedialog  # manejo de archivos
 import tkinter  # interfaz grafica
+from tkinter import *
+from tkinter import filedialog
+from tkinter import font
 
 # CTRL + ALT + L --> FORMAT
 pygame.init()
@@ -16,6 +19,11 @@ color_amarillo = pygame.color.Color("#f5f3bb")
 color_amarillo_claro = pygame.color.Color("#f2f5ea")
 color_rojo = pygame.color.Color("#CC2936")
 color_texto = pygame.color.Color("#EEABB3")
+boton_fcfs_active = False
+boton_RR_active = False
+boton_SJF_active = False
+boton_EXP_active = False
+
 color_azul_oscuro = color_menu_izquierdo
 BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
@@ -33,6 +41,8 @@ image = pygame.image.load("imgs/instruments.png").convert()
 clock = pygame.time.Clock()  # reloj para controlar la velocidad de ejecucion del programa
 pygame.display.set_icon(icono)
 padding = 5
+
+contador_paso_a_paso = 0
 
 # Textos a mostrar en la interfaz, se manejan como variables ya que cambian en el transcurso de la ejecucion
 texto_modo = "K E R N E L"
@@ -158,6 +168,16 @@ def poner_textbox(pos_x, pos_y, superficie):
     return clickeable
 
 
+def metodo_fcfs():
+    print(programas)
+    for programa in programas:
+        cant_instrucciones = 0
+        for instruccion in programa:
+            if type(instruccion) == str:
+                cant_instrucciones += 1
+        print(">> ", cant_instrucciones)
+
+
 def poner_controlador(pos_x, pos_y, superficie):
     boton = pygame.Rect(pos_x, pos_y, 50, 20)
     clickeable = pygame.draw.rect(superficie, color_azul, boton, 0, 10)
@@ -230,6 +250,51 @@ def poner_botones(espaciado, contador):
     else:
         mostrar_texto(texto_codigo, aux.left, aux.top)
 
+    boton = pygame.Rect(x - x / 4, lado_derecho_surface.get_rect().bottom - 20, (ancho / 6.8), 40)
+    fuente_aux = pygame.font.Font("fonts/Roboto-Regular.ttf", 17)
+    editor = pygame.draw.rect(pantalla, color_rojo, boton, 0, 15)
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str("Editor"), False, color_texto)),
+                  [editor.centerx - 15, editor.top + 5])
+    espaciado_aux = 10
+    boton1 = pygame.Rect(editor.right + 35, lado_derecho_surface.get_rect().bottom - 20, 60, 40)
+    boton2 = pygame.Rect(boton1.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 60, 40)
+    boton3 = pygame.Rect(boton2.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 60, 40)
+    boton4 = pygame.Rect(boton3.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 110, 40)
+
+    if boton_fcfs_active:
+        color_boton_fcfs = color_rojo
+    else:
+        color_boton_fcfs = color_gris
+    if boton_RR_active:
+        color_boton_rr = color_rojo
+    else:
+        color_boton_rr = color_gris
+    if boton_SJF_active:
+        color_boton_SJF = color_rojo
+    else:
+        color_boton_SJF = color_gris
+    if boton_EXP_active:
+        color_boton_EXP = color_rojo
+    else:
+        color_boton_EXP = color_gris
+
+    boton_fcfs = pygame.draw.rect(pantalla, color_boton_fcfs, boton1, 0, 15)
+    boton_RR = pygame.draw.rect(pantalla, color_boton_rr, boton2, 0, 15)
+    boton_SJF = pygame.draw.rect(pantalla, color_boton_SJF, boton3, 0, 15)
+    boton_EXP = pygame.draw.rect(pantalla, color_boton_EXP, boton4, 0, 15)
+
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str("FCFS"), False, color_texto)),
+                  [boton_fcfs.centerx - 15, boton_fcfs.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str("RR"), False, color_texto)),
+                  [boton_RR.centerx - 15, boton_RR.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str("SJF"), False, color_texto)),
+                  [boton_SJF.centerx - 15, boton_SJF.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str("Expropiativo"), False, color_amarillo)),
+                  [boton_EXP.centerx - 45, boton_EXP.top + 5])
+
+    if pygame.mouse.get_pressed()[0] and editor.collidepoint(pygame.mouse.get_pos()):
+        editor_metodo()
+
     variables_textbox = pygame.Rect(aux.right + 25, espaciado * 1.05, (ancho / 6), 166)
     pygame.draw.rect(pantalla, color_amarillo, variables_textbox, 0, 15)
 
@@ -273,12 +338,15 @@ def poner_botones(espaciado, contador):
         pantalla.blit((pygame.font.Font.render(fuente, ">>", False, color_rojo)),
                       [si.centerx - 5, si.centery - 10])
         if pygame.mouse.get_pressed()[0] and si.collidepoint(pygame.mouse.get_pos()):
+            """print("aqui vamos")
             resultado = modo_paso_a_paso(contador, acumulador, variables, etiquetas)
-            contador += 1
+            contador += 1"""
 
-            return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado]
+            return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado,
+                    boton_fcfs, boton_RR, boton_SJF, boton_EXP]
 
-    return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado]
+    return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado,
+            boton_fcfs, boton_RR, boton_SJF, boton_EXP]
 
 
 #   filedialog
@@ -288,6 +356,69 @@ def prompt_file():
     file_name = tkinter.filedialog.askopenfilename(parent=top)
     top.destroy()
     return file_name
+
+
+def editor_metodo():
+    root = Tk()
+    root.title('Titulo')
+    root.iconbitmap("imgs/library.ico")
+    root.geometry("1200x660")
+
+    my_frame = Frame(root)
+    my_frame.pack(pady=5)
+
+    text_scroll = Scrollbar(my_frame)
+    text_scroll.pack(side=RIGHT, fill=Y)
+
+    my_text = Text(my_frame, width=97, height=25, font=("Helvetica", 16), background="yellow", selectforeground="black",
+                   undo=True, yscrollcommand=text_scroll.set)
+    my_text.pack()
+
+    text_scroll.config(command=my_text.yview)
+    my_menu = Menu(root)
+    mensaje = "hola"
+    ruta = ""
+
+    def abrirArchivo():
+        aux = tkinter.Tk()
+        aux.withdraw()  # hide window
+        archivo = tkinter.filedialog.askopenfilename(parent=aux)
+        archivo = open(archivo, 'r')
+        instrucciones = archivo.read()
+        my_text.insert('insert', instrucciones)
+        # print(my_text.get("1.0", "end-1c")) imprime el contenido de la caja de texto
+
+    def guardar_como():
+        global ruta
+        fichero = tkinter.filedialog.asksaveasfile(title="Guardar como", defaultextension=".ch", mode='w')
+        ruta = fichero.name
+        if fichero is not None:
+            contenido = my_text.get(1.0, 'end-1c')  # recuperamos el texto
+            fichero = open(ruta, 'w+')  # creamos el fichero o abrimos
+            fichero.write(contenido)  # escribimos el texto
+            fichero.close()
+
+    file_menu = Menu(my_menu, tearoff=False)
+    my_menu.add_cascade(label="File", menu=file_menu)
+    file_menu.add_command(label="New")
+    file_menu.add_command(label="Open", command=abrirArchivo)
+    file_menu.add_command(label="Save", command=guardar_como)
+    file_menu.add_separator()
+    file_menu.add_command(label="Exit", command=root.destroy)
+
+    edit_menu = Menu(my_menu, tearoff=False)
+    my_menu.add_cascade(label="file", menu=edit_menu)
+    edit_menu.add_command(label="Cut")
+    edit_menu.add_command(label="Copy")
+    edit_menu.add_command(label="Undo")
+    edit_menu.add_command(label="Redo")
+
+    stringvar = StringVar(value=mensaje)
+    status_bar = Label(root, text=stringvar.get())
+    status_bar.pack(fill=X, side=BOTTOM, ipady=5)
+
+    root.config(menu=my_menu)
+    root.mainloop()
 
 
 def validar_sintaxis(linea):
@@ -432,8 +563,8 @@ def manejo_archivo(ruta, variables, etiquetas):
                 aux += i + "\n"
             else:
                 print("Error en sintaxix, linea ", instrucciones.index(i), i)
+                mostrarError("Errores mostrados en la consola")
                 paso = False
-                break
 
     # Si la sintaxtis es valida se cargan las variables, etiquetas y de una vez se guarda en la variable global
     # de programas nuestro programa
@@ -660,189 +791,187 @@ def ejecucion(programa, acumulador, variables, etiquetas, texto_pc, continuar):
     return variables_aux, acumulador_1, etiquetas_aux, texto_pc_aux, texto_impresora_aux, False
 
 
-def modo_paso_a_paso(posicion, acumulador, variables, etiquetas):
+def modo_paso_a_paso(acumulador, variables, etiquetas, instruccion):
     texto_pc = "texto ejemplo pc"
     texto_impresora = "texto ejemplo impresora"
-    pos = []
-    linea = ""
     continuar = False
-    if type(memoria_principal[posicion]) == str:
-        linea = memoria_principal[posicion].split(" ")
-        if linea[0] == "nueva":
-            if len(linea) == 4:
-                variables[linea[1]] = [linea[2], str(linea[3])]
+    linea = instruccion.split(" ")
+
+    if linea[0] == "nueva":
+        if len(linea) == 4:
+            variables[linea[1]] = [linea[2], str(linea[3])]
+        else:
+            if linea[2] == 'C':
+                if len(linea) == 2:
+                    variables[linea[1]] = [linea[2], ' ']
+                elif len(linea) > 4:
+                    cantidad_palabras = len(linea)
+                    resultado = ""
+                    for pos in range(3, cantidad_palabras):
+                        resultado += " " + linea[pos]
+                    variables[linea[1]] = [linea[2], resultado]
+            elif linea[2] == 'R':
+                variables[linea[1]] = [linea[2], '0']
+            elif linea[2] == 'L':
+                variables[linea[1]] = [linea[2], '0']
             else:
-                if linea[2] == 'C':
-                    if len(linea) == 2:
-                        variables[linea[1]] = [linea[2], ' ']
-                    elif len(linea) > 4:
-                        cantidad_palabras = len(linea)
-                        resultado = ""
-                        for pos in range(3, cantidad_palabras):
-                            resultado += " " + linea[pos]
-                        variables[linea[1]] = [linea[2], resultado]
-                elif linea[2] == 'R':
-                    variables[linea[1]] = [linea[2], '0']
-                elif linea[2] == 'L':
-                    variables[linea[1]] = [linea[2], '0']
-                else:
-                    variables[linea[1]] = [linea[2], '0']
-        elif linea[0] == "cargue":
-            acumulador = [variables[linea[1]][0], variables[linea[1]][1]]
-        elif linea[0] == "almacene":
-            variables[linea[1]] = acumulador
-        elif linea[0] == "lea":
-            aux = input("Ingrese el nuevo valor de la variable " + str(linea[1]) + " : ")
-            particion = aux.partition('.')
+                variables[linea[1]] = [linea[2], '0']
+    elif linea[0] == "cargue":
+        acumulador = [variables[linea[1]][0], variables[linea[1]][1]]
+    elif linea[0] == "almacene":
+        variables[linea[1]] = acumulador
+    elif linea[0] == "lea":
+        aux = input("Ingrese el nuevo valor de la variable " + str(linea[1]) + " : ")
+        particion = aux.partition('.')
 
-            if aux.isdigit() and aux != '0' and aux != '1':
-                variables[linea[1]][1] = int(aux)
-                variables[linea[1]][0] = 'I'
+        if aux.isdigit() and aux != '0' and aux != '1':
+            variables[linea[1]][1] = int(aux)
+            variables[linea[1]][0] = 'I'
 
-            elif (particion[0].isdigit() and particion[1] == '.' and particion[2].isdigit()) or (
-                    particion[0] == '' and particion[1] == '.' and particion[2].isdigit()) or (
-                    particion[0].isdigit() and particion[1] == '.' and particion[2] == ''):
-                variables[linea[1]][1] = float(aux)
-                variables[linea[1]][0] = 'R'
+        elif (particion[0].isdigit() and particion[1] == '.' and particion[2].isdigit()) or (
+                particion[0] == '' and particion[1] == '.' and particion[2].isdigit()) or (
+                particion[0].isdigit() and particion[1] == '.' and particion[2] == ''):
+            variables[linea[1]][1] = float(aux)
+            variables[linea[1]][0] = 'R'
 
-            elif aux == '1' or aux == '0':
-                if aux == '1':
-                    variables[linea[1]][1] = True
-                else:
-                    variables[linea[1]][1] = False
-                variables[linea[1]][0] = 'L'
+        elif aux == '1' or aux == '0':
+            if aux == '1':
+                variables[linea[1]][1] = True
             else:
-                variables[linea[1]][1] = aux
-                variables[linea[1]][0] = 'C'
+                variables[linea[1]][1] = False
+            variables[linea[1]][0] = 'L'
+        else:
+            variables[linea[1]][1] = aux
+            variables[linea[1]][0] = 'C'
 
-            # print(variables[linea[1]][1], type(variables[linea[1]]))
+        # print(variables[linea[1]][1], type(variables[linea[1]]))
 
-        elif linea[0] == "sume":
-            if acumulador[0] == 'I' or acumulador[0] == 'R':
-                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
-                    acumulador[1] = int(acumulador[1]) + int(variables[linea[1]][1])
-                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = int(acumulador[1]) + float(variables[linea[1]][1])
+    elif linea[0] == "sume":
+        if acumulador[0] == 'I' or acumulador[0] == 'R':
+            if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                acumulador[1] = int(acumulador[1]) + int(variables[linea[1]][1])
+            elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                acumulador[1] = int(acumulador[1]) + float(variables[linea[1]][1])
 
-                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = float(acumulador[1]) + float(variables[linea[1]][1])
-                else:
-                    acumulador[1] = float(acumulador[1]) + int(variables[linea[1]][1])
+            elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                acumulador[1] = float(acumulador[1]) + float(variables[linea[1]][1])
+            else:
+                acumulador[1] = float(acumulador[1]) + int(variables[linea[1]][1])
 
-        elif linea[0] == "reste":
-            # validar parte logica here
-            if acumulador[0] == 'I' or acumulador[0] == 'R':
-                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
-                    acumulador[1] = int(acumulador[1]) - int(variables[linea[1]][1])
-                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = int(acumulador[1]) - float(variables[linea[1]][1])
-                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = float(acumulador[1]) - float(variables[linea[1]][1])
-                else:
-                    acumulador[1] = float(acumulador[1]) - int(variables[linea[1]][1])
+    elif linea[0] == "reste":
+        # validar parte logica here
+        if acumulador[0] == 'I' or acumulador[0] == 'R':
+            if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                acumulador[1] = int(acumulador[1]) - int(variables[linea[1]][1])
+            elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                acumulador[1] = int(acumulador[1]) - float(variables[linea[1]][1])
+            elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                acumulador[1] = float(acumulador[1]) - float(variables[linea[1]][1])
+            else:
+                acumulador[1] = float(acumulador[1]) - int(variables[linea[1]][1])
 
-        elif linea[0] == "multiplique":
-            if acumulador[0] == 'I' or acumulador[0] == 'R':
-                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
-                    acumulador[1] = int(acumulador[1]) * int(variables[linea[1]][1])
-                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = int(acumulador[1]) * float(variables[linea[1]][1])
-                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = float(acumulador[1]) * float(variables[linea[1]][1])
-                else:
-                    acumulador[1] = float(acumulador[1]) * int(variables[linea[1]][1])
+    elif linea[0] == "multiplique":
+        if acumulador[0] == 'I' or acumulador[0] == 'R':
+            if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                acumulador[1] = int(acumulador[1]) * int(variables[linea[1]][1])
+            elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                acumulador[1] = int(acumulador[1]) * float(variables[linea[1]][1])
+            elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                acumulador[1] = float(acumulador[1]) * float(variables[linea[1]][1])
+            else:
+                acumulador[1] = float(acumulador[1]) * int(variables[linea[1]][1])
 
-        elif linea[0] == "divida":
-            if acumulador[0] == 'I' or acumulador[0] == 'R':
-                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
-                    acumulador[1] = int(acumulador[1]) / int(variables[linea[1]][1])
-                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = int(acumulador[1]) / float(variables[linea[1]][1])
-                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = float(acumulador[1]) / float(variables[linea[1]][1])
-                else:
-                    acumulador[1] = float(acumulador[1]) / int(variables[linea[1]][1])
+    elif linea[0] == "divida":
+        if acumulador[0] == 'I' or acumulador[0] == 'R':
+            if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                acumulador[1] = int(acumulador[1]) / int(variables[linea[1]][1])
+            elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                acumulador[1] = int(acumulador[1]) / float(variables[linea[1]][1])
+            elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                acumulador[1] = float(acumulador[1]) / float(variables[linea[1]][1])
+            else:
+                acumulador[1] = float(acumulador[1]) / int(variables[linea[1]][1])
 
-        elif linea[0] == "potencia":
-            if acumulador[0] == 'I' or acumulador[0] == 'R':
-                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
-                    acumulador[1] = int(acumulador[1]) ** int(variables[linea[1]][1])
-                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = int(acumulador[1]) ** float(variables[linea[1]][1])
-                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = float(acumulador[1]) ** float(variables[linea[1]][1])
-                else:
-                    acumulador[1] = float(acumulador[1]) ** int(variables[linea[1]][1])
+    elif linea[0] == "potencia":
+        if acumulador[0] == 'I' or acumulador[0] == 'R':
+            if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                acumulador[1] = int(acumulador[1]) ** int(variables[linea[1]][1])
+            elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                acumulador[1] = int(acumulador[1]) ** float(variables[linea[1]][1])
+            elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                acumulador[1] = float(acumulador[1]) ** float(variables[linea[1]][1])
+            else:
+                acumulador[1] = float(acumulador[1]) ** int(variables[linea[1]][1])
 
-        elif linea[0] == "modulo":
-            if acumulador[0] == 'I' or acumulador[0] == 'R':
-                if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
-                    acumulador[1] = int(acumulador[1]) % int(variables[linea[1]][1])
-                elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = int(acumulador[1]) % float(variables[linea[1]][1])
-                elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
-                    acumulador[1] = float(acumulador[1]) % float(variables[linea[1]][1])
-                else:
-                    acumulador[1] = float(acumulador[1]) % int(variables[linea[1]][1])
+    elif linea[0] == "modulo":
+        if acumulador[0] == 'I' or acumulador[0] == 'R':
+            if acumulador[0] == 'I' and variables[linea[1]][0] == 'I':
+                acumulador[1] = int(acumulador[1]) % int(variables[linea[1]][1])
+            elif acumulador[0] == 'I' and variables[linea[1]][0] == 'R':
+                acumulador[1] = int(acumulador[1]) % float(variables[linea[1]][1])
+            elif acumulador[0] == 'R' and variables[linea[1]][0] == 'R':
+                acumulador[1] = float(acumulador[1]) % float(variables[linea[1]][1])
+            else:
+                acumulador[1] = float(acumulador[1]) % int(variables[linea[1]][1])
 
-        elif linea[0] == "concatene":
-            acumulador = str(acumulador) + str(variables[linea[1]])
-        elif linea[0] == "elimine":
-            (str(acumulador)).replace(str(linea[1]), "")
-        elif linea[0] == "extraiga":
-            aux = []
-            aux[:0] = str(acumulador)
-            acumulador = aux[linea[1]:]
-        elif linea[0] == "Y":
-            variables[linea[3]] = variables[linea[1]] and variables[linea[2]]
-        elif linea[0] == "O":
-            variables[linea[3]] = variables[linea[1]] or variables[linea[2]]
-        elif linea[0] == "NO":
-            variables[linea[2]] = not variables[linea[1]]
-        elif linea[0] == "muestre":
-            # Muestre por el monitor de pc
-            texto_pc = variables[linea[1]]
-        elif linea[0] == "imprima":
-            texto_impresora = variables[linea[1]][1]
-        elif linea[0] == "vaya":
-            aux = programa[etiquetas[linea[1]]:]
-            variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
-                                                                                    etiquetas, texto_pc, False)
-        elif linea[0] == "vayasi":
-            if acumulador[1] > 0:
-                aux = programa[etiquetas[linea[1]] - 1:]
+    elif linea[0] == "concatene":
+        acumulador = str(acumulador) + str(variables[linea[1]])
+    elif linea[0] == "elimine":
+        (str(acumulador)).replace(str(linea[1]), "")
+    elif linea[0] == "extraiga":
+        aux = []
+        aux[:0] = str(acumulador)
+        acumulador = aux[linea[1]:]
+    elif linea[0] == "Y":
+        variables[linea[3]] = variables[linea[1]] and variables[linea[2]]
+    elif linea[0] == "O":
+        variables[linea[3]] = variables[linea[1]] or variables[linea[2]]
+    elif linea[0] == "NO":
+        variables[linea[2]] = not variables[linea[1]]
+    elif linea[0] == "muestre":
+        # Muestre por el monitor de pc
+        texto_pc = variables[linea[1]]
+    elif linea[0] == "imprima":
+        texto_impresora = variables[linea[1]][1]
+    elif linea[0] == "vaya":
+        aux = programa[etiquetas[linea[1]]:]
+        variables, acumulador, etiquetas, texto_pc, texto_impresora = ejecucion(aux, acumulador, variables,
+                                                                                etiquetas, texto_pc, False)
+    elif linea[0] == "vayasi":
+        if acumulador[1] > 0:
+            aux = programa[etiquetas[linea[1]] - 1:]
 
+            variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                               variables,
+                                                                                               etiquetas, texto_pc,
+                                                                                               continuar)
+
+            while continuar:
                 variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
                                                                                                    variables,
-                                                                                                   etiquetas, texto_pc,
+                                                                                                   etiquetas,
+                                                                                                   texto_pc,
                                                                                                    continuar)
-
-                while continuar:
-                    variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
-                                                                                                       variables,
-                                                                                                       etiquetas,
-                                                                                                       texto_pc,
-                                                                                                       continuar)
-            elif acumulador[1] < 0:
-                aux = programa[etiquetas[linea[2]] - 1:]
+        elif acumulador[1] < 0:
+            aux = programa[etiquetas[linea[2]] - 1:]
+            variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
+                                                                                               variables,
+                                                                                               etiquetas, texto_pc,
+                                                                                               continuar)
+            while continuar:
                 variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
                                                                                                    variables,
-                                                                                                   etiquetas, texto_pc,
+                                                                                                   etiquetas,
+                                                                                                   texto_pc,
                                                                                                    continuar)
-                while continuar:
-                    variables, acumulador, etiquetas, texto_pc, texto_impresora, continuar = ejecucion(aux, acumulador,
-                                                                                                       variables,
-                                                                                                       etiquetas,
-                                                                                                       texto_pc,
-                                                                                                       continuar)
-            else:
-                pass
+        else:
+            pass
 
-        elif linea[0] == "etiqueta":
-            etiquetas[linea[1]] = int(linea[2])
+    elif linea[0] == "etiqueta":
+        etiquetas[linea[1]] = int(linea[2])
 
-        elif linea[0] == "retorne":
-            return variables, acumulador, etiquetas, texto_pc, texto_impresora
+    elif linea[0] == "retorne":
+        return variables, acumulador, etiquetas, texto_pc, texto_impresora
     return variables, acumulador, etiquetas, texto_pc, texto_impresora
 
 
@@ -1121,6 +1250,34 @@ def mostrar_memoria():
     lado_derecho_surface.blit(memoria_surface, (0, scrollbar.y_axis))
 
 
+def paso_a_paso_programa(programa, texto_paso, texto_variables, texto_etiquetas, texto_impresora, texto_pc,
+                         contador_paso_a_paso,
+                         acumulador, variables, etiquetas):
+    print("paso ", contador_paso_a_paso)
+    # para el programa 0 ir a la instruccion i
+    if contador_paso_a_paso == 0:
+        acumulador = ['I', 0]
+        variables = {}
+        etiquetas = {}
+
+    if contador_paso_a_paso < len(programa):
+        instruccion = programa[contador_paso_a_paso]
+        # si no es una tupla con variables, etiquetas, etc; lo imprimo
+        if type(instruccion) != tuple:
+            print(instruccion)
+            texto_paso = str(instruccion)
+            texto_variables = mostrar_variables(variables)
+            texto_etiquetas = mostrar_etiquetas(etiquetas)
+            ejecucion = modo_paso_a_paso(acumulador, variables, etiquetas, instruccion)
+            print("retorno ", ejecucion)
+            texto_impresora = ejecucion[4]
+            texto_pc = ejecucion[3]
+
+    print("---")
+    contador_paso_a_paso += 1
+    return texto_paso, texto_variables, texto_etiquetas, texto_impresora, texto_pc, contador_paso_a_paso, acumulador, variables, etiquetas
+
+
 # Se ingresa al ciclo de pygame
 while True:
     for event in pygame.event.get():
@@ -1142,8 +1299,6 @@ while True:
             acumulador = resultado[1]
             texto_etiquetas = mostrar_etiquetas(resultado[2])
             texto_paso = memoria_principal[contador + kernel]
-            variables, acumulador, etiquetas, texto_pc, texto_impresora = modo_paso_a_paso(contador, acumulador,
-                                                                                           variables, etiquetas)
 
         pc = pantalla.blit(pc_img, (pantalla.get_rect().width / 2 - 120, pantalla.get_rect().top + 5))
         pantalla.blit((pygame.font.Font.render(fuente, "texto ejemplo pc", False, color_amarillo)),
@@ -1213,33 +1368,66 @@ while True:
             # Si ya se cargo el programa se pasa al modo usuario donde se habilita la opcion de play y paso a paso
             elif play.collidepoint(pygame.mouse.get_pos()):
                 if len(programas) > 0:
-                    texto_modo = "U S U A R I O"
+                    if boton_SJF_active or boton_RR_active or boton_fcfs_active or boton_EXP_active:
+                        texto_modo = "U S U A R I O"
 
-                    for prog in programas:
-                        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
-                    if resultado:
-                        texto_variables = mostrar_variables(resultado[0])
-                        texto_etiquetas = mostrar_etiquetas(resultado[2])
-                        texto_pc = resultado[3]
-                        texto_impresora = resultado[4]
-                        acumulador = resultado[1]
+                        for prog in programas:
+                            resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+                        if resultado:
+                            texto_variables = mostrar_variables(resultado[0])
+                            texto_etiquetas = mostrar_etiquetas(resultado[2])
+                            texto_pc = resultado[3]
+                            texto_impresora = resultado[4]
+                            acumulador = resultado[1]
+                            for n in programas:
+                                print("Programas >> ", n)
+                    else:
+                        mostrarError("Seleccione un algoritmo de planificacion")
                 else:
                     mostrarError("No hay programas cargados aun")
             elif poner_botones(20, contador)[5].collidepoint(pygame.mouse.get_pos()):
+                # entra si se selecciona el boton de paso a paso
                 if len(programas) > 0:
                     texto_modo = "U S U A R I O"
-                    for prog in programas:
-                        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
-                    if resultado:
-                        texto_variables = mostrar_variables(resultado[0])
-                        texto_etiquetas = mostrar_etiquetas(resultado[2])
-                        texto_pc = resultado[3]
-                        texto_impresora = resultado[4]
-                        acumulador = resultado[1]
-                        paso_a_paso = not paso_a_paso
-                        texto_paso = memoria_principal[kernel + contador]
+                    # si hay programas cargados ya
+                    print("paso ", contador_paso_a_paso)
+                    # para el programa 0 ir a la instruccion i
+                    if contador_paso_a_paso == 0:
+                        acumulador = ['I', 0]
+                        variables = {}
+                        etiquetas = {}
+
+                    if contador_paso_a_paso < len(programas[0]):
+                        instruccion = programas[0][contador_paso_a_paso]
+                        # si no es una tupla con variables, etiquetas, etc; lo imprimo
+                        if type(instruccion) != tuple:
+                            print(instruccion)
+                            texto_paso = str(instruccion)
+                            texto_variables = mostrar_variables(variables)
+                            texto_etiquetas = mostrar_etiquetas(etiquetas)
+                            ejecucion = modo_paso_a_paso(acumulador, variables, etiquetas, instruccion)
+                            print("retorno ", ejecucion)
+                            texto_impresora = ejecucion[4]
+                            texto_pc = ejecucion[3]
+
+                    print("---")
+                    contador_paso_a_paso += 1
                 else:
                     mostrarError("No hay programas cargados aun")
+            elif poner_botones(20, contador)[8].collidepoint(pygame.mouse.get_pos()):
+                if not boton_RR_active and not boton_SJF_active and not boton_EXP_active:
+                    boton_fcfs_active = not boton_fcfs_active
+                metodo_fcfs()
+            elif poner_botones(20, contador)[9].collidepoint(pygame.mouse.get_pos()):
+                if not boton_fcfs_active and not boton_SJF_active and not boton_EXP_active:
+                    boton_RR_active = not boton_RR_active
+            elif poner_botones(20, contador)[10].collidepoint(pygame.mouse.get_pos()):
+                if not boton_fcfs_active and not boton_RR_active and not boton_EXP_active:
+                    boton_SJF_active = not boton_SJF_active
+            elif poner_botones(20, contador)[11].collidepoint(pygame.mouse.get_pos()):
+                if not boton_fcfs_active and not boton_RR_active and not boton_SJF_active:
+                    boton_EXP_active = not boton_EXP_active
+
         scrollbar.event_handler(event)
     # Metodos graficos
     lado_derecho_surface.fill(pygame.color.Color("#EEABB3"))
