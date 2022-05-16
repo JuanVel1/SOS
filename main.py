@@ -3,6 +3,7 @@ import pygame  # interfaz grafica
 import tkinter.filedialog  # manejo de archivos
 import tkinter  # interfaz grafica
 from tkinter import *
+import random
 from tkinter import filedialog
 from tkinter import font
 
@@ -19,10 +20,13 @@ color_amarillo = pygame.color.Color("#f5f3bb")
 color_amarillo_claro = pygame.color.Color("#f2f5ea")
 color_rojo = pygame.color.Color("#CC2936")
 color_texto = pygame.color.Color("#EEABB3")
+levels = (range(32, 256, 32))
+colores_programas = [color_amarillo]
 boton_fcfs_active = False
 boton_RR_active = False
 boton_SJF_active = False
 boton_EXP_active = False
+boton_PRI_active = False
 
 color_azul_oscuro = color_menu_izquierdo
 BLUE = (0, 0, 255)
@@ -56,6 +60,7 @@ texto_paso = "PASO A PASO"
 # Variables iniciales del ch cumputador
 memoria = 100
 kernel = 59
+quantum = 5
 memoria_principal = list(range(memoria + kernel))
 
 # Variables globales
@@ -168,14 +173,43 @@ def poner_textbox(pos_x, pos_y, superficie):
     return clickeable
 
 
-def metodo_fcfs():
-    print(programas)
+def metodo_fcfs(prog=None, variables=None, etiquetas=None, acumulador=None):
+    resultado = None
+    tiempos_llegada = []
+    cant_instrucciones_programas = []
     for programa in programas:
-        cant_instrucciones = 0
-        for instruccion in programa:
-            if type(instruccion) == str:
-                cant_instrucciones += 1
-        print(">> ", cant_instrucciones)
+        if prog and variables and etiquetas and acumulador:
+            cant_instrucciones = 0
+            for instruccion in programa:
+                if type(instruccion) == str:
+                    if not (instruccion.startswith("nueva") or instruccion.startswith(
+                            "etiqueta") or instruccion.startswith("retorne")):
+                        cant_instrucciones += 1
+            if not (len(tiempos_llegada) > 0):
+                tiempo_llegada = 0
+            else:
+                """
+                print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+                print("longitud de tiempos_llegad ", len(tiempos_llegada))
+                print("Posicion de programa ", programas.index(programa))
+                print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+                """
+                tiempo_llegada = (tiempos_llegada[programas.index(programa) - 1] + cant_instrucciones) / 4
+                """print(" -- ", tiempos_llegada[programas.index(programa) - 1], " + ", cant_instrucciones, " / 4 = ",
+                      tiempo_llegada)"""
+            tiempos_llegada.append(tiempo_llegada)
+            print("tiempos_llegada ", tiempos_llegada)
+            cant_instrucciones_programas.append(cant_instrucciones)
+            # print(">> instrucciones ", cant_instrucciones, " tiempo de llegada ", tiempo_llegada)
+        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+    return resultado
+
+
+def metodo_RR(prog=None, variables=None, etiquetas=None, acumulador=None):
+    for programa in programas:
+        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+
+    return resultado
 
 
 def poner_controlador(pos_x, pos_y, superficie):
@@ -259,7 +293,9 @@ def poner_botones(espaciado, contador):
     boton1 = pygame.Rect(editor.right + 35, lado_derecho_surface.get_rect().bottom - 20, 60, 40)
     boton2 = pygame.Rect(boton1.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 60, 40)
     boton3 = pygame.Rect(boton2.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 60, 40)
-    boton4 = pygame.Rect(boton3.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 110, 40)
+    boton4 = pygame.Rect(boton3.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 140, 40)
+    boton5 = pygame.Rect(boton4.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 80, 40)
+    boton6 = pygame.Rect(boton5.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 20, 120, 40)
 
     if boton_fcfs_active:
         color_boton_fcfs = color_rojo
@@ -277,11 +313,21 @@ def poner_botones(espaciado, contador):
         color_boton_EXP = color_rojo
     else:
         color_boton_EXP = color_gris
+    if boton_PRI_active:
+        color_boton_PRI = color_rojo
+    else:
+        color_boton_PRI = color_gris
 
     boton_fcfs = pygame.draw.rect(pantalla, color_boton_fcfs, boton1, 0, 15)
     boton_RR = pygame.draw.rect(pantalla, color_boton_rr, boton2, 0, 15)
     boton_SJF = pygame.draw.rect(pantalla, color_boton_SJF, boton3, 0, 15)
     boton_EXP = pygame.draw.rect(pantalla, color_boton_EXP, boton4, 0, 15)
+    boton_PRI = pygame.draw.rect(pantalla, color_boton_PRI, boton5, 0, 15)
+    boton_Quantum = pygame.draw.rect(pantalla, color_rojo, boton6, 0, 15)
+    mas_Q = poner_controlador(boton_Quantum.right + espaciado_aux, lado_derecho_surface.get_rect().bottom - 25,
+                              pantalla)
+    menos_Q = poner_controlador(boton_Quantum.right + espaciado_aux, lado_derecho_surface.get_rect().bottom,
+                                pantalla)
 
     pantalla.blit((pygame.font.Font.render(fuente_aux, str("FCFS"), False, color_texto)),
                   [boton_fcfs.centerx - 15, boton_fcfs.top + 5])
@@ -289,8 +335,16 @@ def poner_botones(espaciado, contador):
                   [boton_RR.centerx - 15, boton_RR.top + 5])
     pantalla.blit((pygame.font.Font.render(fuente_aux, str("SJF"), False, color_texto)),
                   [boton_SJF.centerx - 15, boton_SJF.top + 5])
-    pantalla.blit((pygame.font.Font.render(fuente_aux, str("Expropiativo"), False, color_amarillo)),
-                  [boton_EXP.centerx - 45, boton_EXP.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str(" SJF Expropiativo"), False, color_amarillo)),
+                  [boton_EXP.centerx - 65, boton_EXP.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, str("Prioridad"), False, color_amarillo)),
+                  [boton_PRI.centerx - 35, boton_PRI.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, ("Quantum : " + str(quantum)), False, color_amarillo)),
+                  [boton_Quantum.centerx - 50, boton_Quantum.top + 5])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, " + ", False, color_fondo)),
+                  [mas_Q.centerx - 8, mas_Q.centery - 10])
+    pantalla.blit((pygame.font.Font.render(fuente_aux, " - ", False, color_fondo)),
+                  [menos_Q.centerx - 8, menos_Q.centery - 10])
 
     if pygame.mouse.get_pressed()[0] and editor.collidepoint(pygame.mouse.get_pos()):
         editor_metodo()
@@ -327,8 +381,7 @@ def poner_botones(espaciado, contador):
         cuadro_respuesta = pygame.draw.rect(pantalla, color_rojo, pygame.Rect(pantalla.get_rect().centerx / 1.5,
                                                                               pantalla.get_rect().bottom - 100,
                                                                               lado_derecho_surface.get_rect().width * 1.65,
-                                                                              55),
-                                            0, 15)
+                                                                              55), 0, 15)
         pantalla.blit((pygame.font.Font.render(fuente, "Paso siguiente", False, color_amarillo)),
                       [cuadro_respuesta.left + 25, cuadro_respuesta.top + 15])
 
@@ -338,15 +391,11 @@ def poner_botones(espaciado, contador):
         pantalla.blit((pygame.font.Font.render(fuente, ">>", False, color_rojo)),
                       [si.centerx - 5, si.centery - 10])
         if pygame.mouse.get_pressed()[0] and si.collidepoint(pygame.mouse.get_pos()):
-            """print("aqui vamos")
-            resultado = modo_paso_a_paso(contador, acumulador, variables, etiquetas)
-            contador += 1"""
-
             return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado,
-                    boton_fcfs, boton_RR, boton_SJF, boton_EXP]
+                    boton_fcfs, boton_RR, boton_SJF, boton_EXP, boton_PRI, mas_Q, menos_Q]
 
     return [btn_cargar, mas_memoria, menos_memoria, mas_kernel, menos_kernel, boton_paso, contador, resultado,
-            boton_fcfs, boton_RR, boton_SJF, boton_EXP]
+            boton_fcfs, boton_RR, boton_SJF, boton_EXP, boton_PRI, mas_Q, menos_Q]
 
 
 #   filedialog
@@ -625,7 +674,7 @@ def ejecucion(programa, acumulador, variables, etiquetas, texto_pc, continuar):
     texto_impresora_aux = "texto ejemplo impresora"
 
     for instruccion in programa:
-        print(">> ", programa.index(instruccion), " - ", instruccion)
+        # print(">> ", programa.index(instruccion), " - ", instruccion)
         linea = instruccion.split(" ")
         if linea[0] == "nueva":
 
@@ -995,7 +1044,7 @@ def ejecutar_programa(programa, variables, etiquetas, acumulador):
         instruccion = instruccion.replace("  ", " ")
         instruccion = instruccion.replace(" ", " ")
         linea = instruccion.split(" ")
-        print(">> ", programa.index(instruccion), " - ", instruccion)
+        # print(">> ", programa.index(instruccion), " - ", instruccion)
 
         if linea[0] == "nueva":
             if len(linea) == 4:
@@ -1236,16 +1285,19 @@ def mostrar_memoria():
     memoria_surface = pygame.Surface((lado_izquierdo.width - 30, aux))
     memoria_surface.fill(color_azul_oscuro)
     fuente = pygame.font.Font("fonts/Roboto-Regular.ttf", 16)
-
+    contador = 0
     for instrucccion in memoria_principal:
         if type(instrucccion) is list:
             memoria_surface.blit(
                 (pygame.font.Font.render(fuente, str(instrucccion[0] + " " + str(instrucccion[1])), False,
-                                         color_amarillo)),
+                                         colores_programas[contador])),
                 [memoria_surface.get_rect().left + 2, memoria_surface.get_rect().top + espaciado])
+
         else:
-            memoria_surface.blit((pygame.font.Font.render(fuente, str(instrucccion), False, color_amarillo)),
-                                 [memoria_surface.get_rect().left + 2, memoria_surface.get_rect().top + espaciado])
+            memoria_surface.blit(
+                (pygame.font.Font.render(fuente, str(instrucccion), False, colores_programas[contador])),
+                [memoria_surface.get_rect().left + 2, memoria_surface.get_rect().top + espaciado])
+
         espaciado += 20
     lado_derecho_surface.blit(memoria_surface, (0, scrollbar.y_axis))
 
@@ -1351,11 +1403,18 @@ while True:
                         if programa[2]:
                             programas.append(programa[2])
                             cargar_memoria(programas)
+                            color = pygame.color.Color(tuple(random.choice(levels) for _ in range(3)))
+                            if color not in colores_programas:
+                                colores_programas.append(color)
+                            else:
+                                while color in colores_programas:
+                                    color = pygame.color.Color(tuple(random.choice(levels) for _ in range(3)))
+                                colores_programas.append(color)
+                            print(colores_programas)
                             # texto_variables = mostrar_variables(variables)
                             # texto_etiquetas = mostrar_etiquetas(etiquetas)
                     else:
                         mostrarError("Memoria principal con longitud superior")
-
             # Acciones para botones de aumento y dism para var kernel y memoria
             elif poner_botones(20, contador)[1].collidepoint(pygame.mouse.get_pos()):
                 memoria += 10
@@ -1371,8 +1430,17 @@ while True:
                     if boton_SJF_active or boton_RR_active or boton_fcfs_active or boton_EXP_active:
                         texto_modo = "U S U A R I O"
 
+                        if boton_fcfs_active:
+                            print("Ejecutando FCFS")
+                            print("...............")
                         for prog in programas:
-                            resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+                            resultado = metodo_fcfs(prog, variables, etiquetas, acumulador)
+                            # resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+
+                        if boton_RR_active:
+                            resultado = metodo_RR(prog, variables, etiquetas, acumulador)
+
+                        """aqui"""
                         if resultado:
                             texto_variables = mostrar_variables(resultado[0])
                             texto_etiquetas = mostrar_etiquetas(resultado[2])
@@ -1387,46 +1455,55 @@ while True:
                     mostrarError("No hay programas cargados aun")
             elif poner_botones(20, contador)[5].collidepoint(pygame.mouse.get_pos()):
                 # entra si se selecciona el boton de paso a paso
-                if len(programas) > 0:
-                    texto_modo = "U S U A R I O"
-                    # si hay programas cargados ya
-                    print("paso ", contador_paso_a_paso)
-                    # para el programa 0 ir a la instruccion i
-                    if contador_paso_a_paso == 0:
-                        acumulador = ['I', 0]
-                        variables = {}
-                        etiquetas = {}
+                if boton_SJF_active or boton_RR_active or boton_fcfs_active or boton_EXP_active:
+                    if len(programas) > 0:
+                        texto_modo = "U S U A R I O"
+                        # si hay programas cargados ya
+                        print("paso ", contador_paso_a_paso)
+                        # para el programa 0 ir a la instruccion i
+                        if contador_paso_a_paso == 0:
+                            acumulador = ['I', 0]
+                            variables = {}
+                            etiquetas = {}
 
-                    if contador_paso_a_paso < len(programas[0]):
-                        instruccion = programas[0][contador_paso_a_paso]
-                        # si no es una tupla con variables, etiquetas, etc; lo imprimo
-                        if type(instruccion) != tuple:
-                            print(instruccion)
-                            texto_paso = str(instruccion)
-                            texto_variables = mostrar_variables(variables)
-                            texto_etiquetas = mostrar_etiquetas(etiquetas)
-                            ejecucion = modo_paso_a_paso(acumulador, variables, etiquetas, instruccion)
-                            print("retorno ", ejecucion)
-                            texto_impresora = ejecucion[4]
-                            texto_pc = ejecucion[3]
+                        if contador_paso_a_paso < len(programas[0]):
+                            instruccion = programas[0][contador_paso_a_paso]
+                            # si no es una tupla con variables, etiquetas, etc; lo imprimo
+                            if type(instruccion) != tuple:
+                                texto_paso = str(instruccion)
+                                texto_variables = mostrar_variables(variables)
+                                texto_etiquetas = mostrar_etiquetas(etiquetas)
+                                ejecucion = modo_paso_a_paso(acumulador, variables, etiquetas, instruccion)
+                                texto_impresora = ejecucion[4]
+                                texto_pc = ejecucion[3]
 
-                    print("---")
-                    contador_paso_a_paso += 1
+                        contador_paso_a_paso += 1
+                    else:
+                        mostrarError("No hay programas cargados aun")
                 else:
-                    mostrarError("No hay programas cargados aun")
+                    mostrarError("Seleccione un algoritmo de planificacion")
             elif poner_botones(20, contador)[8].collidepoint(pygame.mouse.get_pos()):
                 if not boton_RR_active and not boton_SJF_active and not boton_EXP_active:
                     boton_fcfs_active = not boton_fcfs_active
-                metodo_fcfs()
+                # metodo_fcfs()
             elif poner_botones(20, contador)[9].collidepoint(pygame.mouse.get_pos()):
-                if not boton_fcfs_active and not boton_SJF_active and not boton_EXP_active:
+                if not boton_fcfs_active and not boton_SJF_active and not boton_EXP_active and not boton_PRI_active:
                     boton_RR_active = not boton_RR_active
             elif poner_botones(20, contador)[10].collidepoint(pygame.mouse.get_pos()):
-                if not boton_fcfs_active and not boton_RR_active and not boton_EXP_active:
+                if not boton_fcfs_active and not boton_RR_active and not boton_EXP_active and not boton_PRI_active:
                     boton_SJF_active = not boton_SJF_active
             elif poner_botones(20, contador)[11].collidepoint(pygame.mouse.get_pos()):
-                if not boton_fcfs_active and not boton_RR_active and not boton_SJF_active:
+                if not boton_fcfs_active and not boton_RR_active and not boton_SJF_active and not boton_PRI_active:
                     boton_EXP_active = not boton_EXP_active
+            elif poner_botones(20, contador)[12].collidepoint(pygame.mouse.get_pos()):
+                if not boton_fcfs_active and not boton_RR_active and not boton_SJF_active and not boton_EXP_active:
+                    boton_PRI_active = not boton_PRI_active
+            elif poner_botones(20, contador)[13].collidepoint(pygame.mouse.get_pos()):
+                if quantum >= 0:
+                    quantum += 1
+            elif poner_botones(20, contador)[14].collidepoint(pygame.mouse.get_pos()):
+                if quantum > 0:
+                    quantum -= 1
 
         scrollbar.event_handler(event)
     # Metodos graficos
