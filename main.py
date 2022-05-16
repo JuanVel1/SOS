@@ -39,7 +39,7 @@ pc_img = pygame.image.load("imgs/Captura.PNG")
 impresora_img = pygame.image.load("imgs/Captura_1.PNG")
 play_img = pygame.image.load("imgs/play.png")
 play_img = pygame.transform.scale(play_img, (64, 64))
-icono = pygame.image.load("imgs/icono.png")
+icono = pygame.image.load("imgs/icono.ico")
 image = pygame.image.load("imgs/instruments.png").convert()
 
 clock = pygame.time.Clock()  # reloj para controlar la velocidad de ejecucion del programa
@@ -409,8 +409,8 @@ def prompt_file():
 
 def editor_metodo():
     root = Tk()
-    root.title('Titulo')
-    root.iconbitmap("imgs/library.ico")
+    root.title('Editor')
+    root.iconbitmap("imgs/icono.ico")
     root.geometry("1200x660")
 
     my_frame = Frame(root)
@@ -419,7 +419,8 @@ def editor_metodo():
     text_scroll = Scrollbar(my_frame)
     text_scroll.pack(side=RIGHT, fill=Y)
 
-    my_text = Text(my_frame, width=97, height=25, font=("Helvetica", 16), background="yellow", selectforeground="black",
+    my_text = Text(my_frame, width=97, height=25, font=("fonts/Roboto-Regular.ttf", 18), background="#040926",
+                   selectforeground="#040926", fg="#f2f5ea", pady=5, padx=5,
                    undo=True, yscrollcommand=text_scroll.set)
     my_text.pack()
 
@@ -1433,9 +1434,12 @@ while True:
                         if boton_fcfs_active:
                             print("Ejecutando FCFS")
                             print("...............")
-                        for prog in programas:
-                            resultado = metodo_fcfs(prog, variables, etiquetas, acumulador)
-                            # resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+                            for prog in programas:
+                                print(variables, etiquetas, acumulador)
+                                print("...............")
+                                acumulador = ['I', 0]
+                                resultado = metodo_fcfs(prog, variables, etiquetas, acumulador)
+                                # resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
 
                         if boton_RR_active:
                             resultado = metodo_RR(prog, variables, etiquetas, acumulador)
@@ -1447,6 +1451,7 @@ while True:
                             texto_pc = resultado[3]
                             texto_impresora = resultado[4]
                             acumulador = resultado[1]
+                            print("resultado ", resultado)
                             for n in programas:
                                 print("Programas >> ", n)
                     else:
