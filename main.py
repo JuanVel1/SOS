@@ -56,6 +56,7 @@ texto_etiquetas = "Aqui van las etiquetas"
 texto_pc = "texto ejemplo pc"
 texto_impresora = "texto ejemplo impresora"
 texto_paso = "PASO A PASO"
+texto_resultado = "Resultado algoritmos :)"
 
 # Variables iniciales del ch cumputador
 memoria = 100
@@ -74,7 +75,7 @@ contador = 0
 # cada recuadro en la interfaz es una Surface dentro de pygame
 lado_derecho_surface = pygame.Surface((216 - padding * 2, alto - 50))
 
-# Variables auxiliares para ejecucion
+# Variables auxiliares paraejecucion
 paso_a_paso = False  # saber si se debe correr el modo paso a paso
 
 
@@ -205,11 +206,136 @@ def metodo_fcfs(prog=None, variables=None, etiquetas=None, acumulador=None):
     return resultado
 
 
-def metodo_RR(prog=None, variables=None, etiquetas=None, acumulador=None):
-    for programa in programas:
-        resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
+def metodo_RR(variables=None, etiquetas=None, acumulador=None):
+    resultado = None
+    tiempos_llegada = []
+    cant_instrucciones_programas = []
+    alfabeto = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    programas_aux = []
+    quantum_aux = quantum
+    print("quantum : ", quantum_aux)
 
-    return resultado
+    # for que crea la misma cantidad de objetos de programa que tenemos en programas para que el algoritmo los recorra
+    for programa in programas:
+        programas_aux.append({
+            "id": alfabeto[programas.index(programa)],
+            "instrucciones": [],
+            "tiempo de llegada": 0,
+            "rafaga": 0,
+            "rafaga de tiempo": 0,
+            "tiempo de finalizacion": 0,
+            "retorno": 0,
+            "espera": 0
+        })
+
+    # for que recorre las instrucciones de cada programa y solo les deja las que son instrucciones y no variables
+    instrucciones = []
+    for programa in programas:
+        aux = []
+        for p in programa:
+            if type(p) == str:
+                aux.append(p)
+        instrucciones.append(aux)
+    # print(instrucciones)
+
+    # Asignando instrucciones ya almacenadas a cada programa
+    for instruccion in instrucciones:
+        programas_aux[instrucciones.index(instruccion)]["instrucciones"] = instruccion
+
+    cant_instrucciones = []
+    for programa in programas_aux:
+        instrucciones_programa = 0
+        for instruccion in programa["instrucciones"]:
+            if not (instruccion.startswith("nueva") or instruccion.startswith(
+                    "etiqueta") or instruccion.startswith("retorne")):
+                instrucciones_programa += 1
+        programa["rafaga"] = instrucciones_programa
+        programa["rafaga de tiempo"] = instrucciones_programa
+        cant_instrucciones.append(instrucciones_programa)
+    print("Cantidad de instrucciones x programa ", cant_instrucciones)
+    print("Rafagas x programa ", cant_instrucciones)
+    print("********")
+    contador = quantum_aux
+
+    cant_programas = len(programas_aux)  # es la variable que controla los programas que hacen falta por terminar
+    tiempo = 0
+    programas_cola = []
+    programa_ejecusion = None  # variable que corresponde al programa que actualmente se encuentra en ejecusion
+    n_programa = 0  # variable utilizada para pasar al siguiente
+    print("[+] Se establecieron varibles para el funcionamiento")
+    print("@@@@@@@ Incicio del Algortimo  @@@@@@@@")
+    sw = True  # Variable de control
+    while (cant_programas > 0):  # Mientras haya programas para ejecutarse
+        print("---------------- Tiempo [" + str(tiempo) + "]  ---------------")
+        if (len(programas_aux) > n_programa and tiempo >= programas_aux[n_programa]["tiempo de llegada"]):
+            print("[+]El programa " + str(programas_aux[n_programa]["id"]) + " se ingreso a la cola de listos")
+            programas_cola.append(programas_aux[n_programa])  # Agrega el programa actual a la cola actual
+            n_programa += 1  # pasa al siguiente programa
+        else:
+            if n_programa > 0 or len(programas_cola) > 0:
+                if (programa_ejecusion == None):
+                    programa_ejecusion = programas_cola.pop(0)
+                    sw = True
+                    print("[+] Se saca el proceso " + str(programa_ejecusion["id"]) + " de la cola y se ejecuta.")
+                    print(programa_ejecusion["instrucciones"])
+                    resultado = ejecutar_programa(programa_ejecusion["instrucciones"], variables, etiquetas, acumulador)
+
+                else:
+                    if sw:
+                        if (programa_ejecusion["rafaga de tiempo"] >= quantum_aux):
+                            programa_ejecusion["rafaga de tiempo"] = programa_ejecusion[
+                                                                         "rafaga de tiempo"] - quantum_aux
+                            print("[+] Se resta " + str(quantum_aux) + " a la rafaga del programa " + str(
+                                programa_ejecusion["id"]) + " por superar el quantum")
+                            tiempo = tiempo + quantum_aux
+                            print("[+] Se aumenta" + str(quantum_aux) + " al tiempo")
+                        else:
+                            tiempo += programa_ejecusion["rafaga de tiempo"]
+                            print("[+] Se aumenta " + str(programa_ejecusion["rafaga de tiempo"]) + " al tiempo")
+                            print("[+] Se resta " + str(
+                                programa_ejecusion["rafaga de tiempo"]) + " a la rafaga del proceso " + str(
+                                programa_ejecusion["id"]))
+                            programa_ejecusion["rafaga de tiempo"] = 0
+                        if programa_ejecusion["rafaga de tiempo"] < 1:
+                            print("---------------- Tiempo [" + str(tiempo) + "]  ---------------")
+                            print("[+] El Proceso " + str(programa_ejecusion["id"]) + " finalizo.")
+                            programa_ejecusion["tiempo de finalizacion"] = tiempo
+                            programa_ejecusion["retorno"] = programa_ejecusion["tiempo de finalizacion"] - \
+                                                            programa_ejecusion["tiempo de llegada"]
+                            programa_ejecusion["espera"] = programa_ejecusion["retorno"] - programa_ejecusion["rafaga"]
+                            cant_programas -= 1
+                            programa_ejecusion = None
+                        else:
+                            sw = False
+                    else:
+                        programas_cola.append(programa_ejecusion)
+                        print("[+] Se agrega el proceso " + str(
+                            programa_ejecusion["id"]) + " que estaba en ejecusion a la cola de listos")
+                        programa_ejecusion = None
+            else:
+                tiempo += 1
+    print("@@@@@@@ Algoritmo Finalizado @@@@@@@@")
+    print("!!!!!!!!!!!!!! Resultados !!!!!")
+    total_retorno = 0
+    total_espera = 0
+    aux3 = ""
+    for programa in programas_aux:
+        print("Programa " + str(programa["id"]) + " Finalizo: " + str(
+            programa["tiempo de finalizacion"]) + " Espera: " + str(
+            programa["espera"]) + " Retorno: " + str(programa["retorno"]))
+        aux3 += "Prog " + str(programa["id"]) + "\nFinalizo: " + str(
+            programa["tiempo de finalizacion"]) + " Espera: " + str(
+            programa["espera"]) + "\nRetorno: " + str(programa["retorno"])+ "\n"
+        total_retorno += programa["retorno"]
+        total_espera += programa["espera"]
+    aux = "Promedio de retorno: " + str(total_retorno / len(programas_aux))
+    aux1 = "Promedio de espera: " + str(total_espera / len(programas_aux))
+    print(aux)
+    print(aux1)
+
+    texto_resultado = aux + "\n" + aux1 + "\n" + aux3
+
+    return resultado, texto_resultado
 
 
 def poner_controlador(pos_x, pos_y, superficie):
@@ -286,6 +412,22 @@ def poner_botones(espaciado, contador):
 
     boton = pygame.Rect(x - x / 4, lado_derecho_surface.get_rect().bottom - 20, (ancho / 6.8), 40)
     fuente_aux = pygame.font.Font("fonts/Roboto-Regular.ttf", 17)
+
+    boton_resultado = pygame.Rect(x - x / 4, lado_derecho_surface.get_rect().bottom - 150, (ancho / 6.8), 125)
+    resultado_alg = pygame.draw.rect(pantalla, color_rojo, boton_resultado, 0, 15)
+
+    if type(texto_resultado) == str:
+        pantalla.blit((pygame.font.Font.render(pygame.font.Font("fonts/Roboto-Regular.ttf", 12), texto_resultado,
+                                               False, color_texto)),
+                      [resultado_alg.centerx - 55, resultado_alg.top + 5])
+    else:
+        separador = 0
+        for tr in texto_resultado:
+            pantalla.blit((pygame.font.Font.render(pygame.font.Font("fonts/Roboto-Regular.ttf", 12), tr,
+                                                   False, color_texto)),
+                          [resultado_alg.centerx - 65, resultado_alg.top + 5 + separador])
+            separador += 15
+
     editor = pygame.draw.rect(pantalla, color_rojo, boton, 0, 15)
     pantalla.blit((pygame.font.Font.render(fuente_aux, str("Editor"), False, color_texto)),
                   [editor.centerx - 15, editor.top + 5])
@@ -1434,15 +1576,23 @@ while True:
                         if boton_fcfs_active:
                             print("Ejecutando FCFS")
                             print("...............")
-                            for prog in programas:
+                            for prog1 in programas:
                                 print(variables, etiquetas, acumulador)
                                 print("...............")
                                 acumulador = ['I', 0]
-                                resultado = metodo_fcfs(prog, variables, etiquetas, acumulador)
+                                resultado = metodo_fcfs(prog1, variables, etiquetas, acumulador)
                                 # resultado = ejecutar_programa(prog, variables, etiquetas, acumulador)
 
                         if boton_RR_active:
-                            resultado = metodo_RR(prog, variables, etiquetas, acumulador)
+                            print("Ejecutando RR")
+                            print("...............")
+                            for prog1 in programas:
+                                print(variables, etiquetas, acumulador)
+                                print("...............")
+                                acumulador = ['I', 0]
+                                res = metodo_RR(variables, etiquetas, acumulador)
+                                resultado = res[0]
+                                texto_resultado = res[1].split("\n")
 
                         """aqui"""
                         if resultado:
